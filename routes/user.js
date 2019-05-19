@@ -70,8 +70,12 @@ app.get("/logout",(req,res)=>{
 
 
 app.get("/is-log",(req,res)=>{
+    console.log("bb");
+    console.log(req.session.email);
     if(req.session.email && req.session.user){
+        console.log(req.session.email,req.session.user);
         return res.json({
+
            ok:true
         });
     }
@@ -79,6 +83,7 @@ app.get("/is-log",(req,res)=>{
         ok:false
     });
 });
+
 
 
 module.exports = app;
