@@ -2,12 +2,16 @@ var express = require("express");
 const app = express();
 
 var User = require("../models/user.js");
+var Curriculum = require("../models/curriculum.js");
 const cookieSession = require('cookie-session');
+
 app.use(cookieSession({
     name: 'session',
     keys: ['key_1', 'key_2'],
     maxAge: 24 * 60 * 60 * 1000
 }));
+
+//Registrando al usuario en la base de datos.
 app.post("/signup", (req,res) => {
     const newUser = new User({
         name: req.body.name,
@@ -44,7 +48,7 @@ app.post("/login", (req,res) => {
         if(!userdb){
             return res.status(404).json({
                ok:false,
-                msg: "Error en usurio o contraseña"
+                msg: "Error en usuario o contraseña"
             });
         }
         req.session.email = userdb.email;
@@ -70,12 +74,8 @@ app.get("/logout",(req,res)=>{
 
 
 app.get("/is-log",(req,res)=>{
-    console.log("bb");
-    console.log(req.session.email);
     if(req.session.email && req.session.user){
-        console.log(req.session.email,req.session.user);
         return res.json({
-
            ok:true
         });
     }
@@ -84,6 +84,48 @@ app.get("/is-log",(req,res)=>{
     });
 });
 
+app.post("/curriculum",(req,res)=>{
+    if(req.session.email && req.session.user) {
+        User.findOne({
+            user: req.body.user,
+            email: req.body.email
+        },(err,userdb) => {
+            if(err){
+                return res.status(500).json({
+                    ok: false,
+                    err
+                });
+            }
+            if(!userdb){
+                return res.status(404).json({
+                    ok:false,
+                    msg: "Error en usuario o contraseña"
+                });
+            }
 
+        const newCurriculum = new Curriculum({
+            name: userdb.name,
+            address: req.body.address,
+            telephone: req.body.telephone,
+            email: userdb.email,
+            birthDate: req.body.birthDate,
+            country: req.body.country,
+            experience: req.body.experience
+        });
+        newCurriculum.save((err,curriculumdb) => {
+            if(err){
+                return res.status(500).json({
+                    ok: false,
+                    err
+                });
+            }
+            res.status(201).json({
+                ok: true,
+                curriculumdb
+            });
+        });
+        });
+    }
+});
 
 module.exports = app;
