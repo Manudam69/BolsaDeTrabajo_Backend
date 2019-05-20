@@ -1,9 +1,9 @@
-var express = require("express");
+const express = require("express");
 const app = express();
-var Company = require("../models/company.js");
+const Company = require("../models/company.js");
 const cookieSession = require('cookie-session');
-var randomstring = require("randomstring");
-var nodemailer = require('nodemailer');
+const randomstring = require("randomstring");
+const nodemailer = require('nodemailer');
 
 
 app.use(cookieSession({
@@ -20,7 +20,7 @@ app.post("/signup-company", (req,res) => {
         email: req.body.email,
         telephone: req.body.telephone,
         sat: req.body.sat,
-        password: randomstring.generate(10)
+        password: randomstring.generate(15)
     });
     newCompany.save((err,companydb) => {
         if(err){
@@ -29,7 +29,8 @@ app.post("/signup-company", (req,res) => {
                 err
             });
         }
-        var transporter = nodemailer.createTransport({
+
+        const transporter = nodemailer.createTransport({
             service: 'Hotmail',
             auth: {
                 user: 'elfarolitouaa@hotmail.com',
@@ -37,13 +38,12 @@ app.post("/signup-company", (req,res) => {
             }
         });
 
-        var mailOptions = {
+        const mailOptions = {
             from: 'El Farolito',
             to: companydb.email,
             subject: 'Gracias por registrarte en el farolito.com',
             text: 'Tu contraseña es ' + companydb.password
         };
-
 
         transporter.sendMail(mailOptions, function(error, info){
             if (error) {
@@ -87,7 +87,5 @@ app.post("/login-company", (req,res) => {
       });
   });
 });
-
-
 
 module.exports = app;
