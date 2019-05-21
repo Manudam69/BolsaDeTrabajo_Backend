@@ -9,6 +9,7 @@ const curriculumSchema = new Schema({
     email: String,
     birthDate: String,
     country: String,
+    profession: String,
     experience:String
 });
 

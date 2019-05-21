@@ -103,8 +103,11 @@ app.post("/job", (req, res) => {
         const newJob = new Job({
             companyName: companydb.companyName,
             projectName: req.body.projectName,
+            category: req.body.category,
+            charge: req.body.charge,
             location: req.body.location,
             salary: req.body.salary,
+            requirements: req.body.requirements,
             description: req.body.description
         });
         newJob.save((err, jobdb) => {

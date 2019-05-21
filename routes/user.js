@@ -1,6 +1,6 @@
 var express = require("express");
 const app = express();
-
+var nodemailer = require('nodemailer');
 var User = require("../models/user.js");
 var Curriculum = require("../models/curriculum.js");
 const cookieSession = require('cookie-session');
@@ -21,6 +21,29 @@ app.post("/signup", (req,res) => {
         validated: false
     });
     newUser.save((err,userdb) => {
+
+      var transporter = nodemailer.createTransport({
+          service: 'Hotmail',
+          auth: {
+              user: 'elfarolitouaa@hotmail.com',
+              pass: 'UAAisc2314'
+          }
+      });
+
+      var mailOptions = {
+          from: 'El Farolito',
+          to: userdb.email,
+          subject: 'Gracias por registrarte en el farolito.com',
+          text: 'Click para verificar tu cuenta'
+      };
+
+      transporter.sendMail(mailOptions, function(error, info){
+          if (error) {
+              console.log(error);
+          } else {
+              console.log('Email sent: ' + info.response);
+          }
+      });
         if(err){
             return res.status(500).json({
                 ok: false,
@@ -103,6 +126,7 @@ app.post("/curriculum",(req,res)=>{
             email: userdb.email,
             birthDate: req.body.birthDate,
             country: req.body.country,
+            profession: req.body.profession,
             experience: req.body.experience
         });
         newCurriculum.save((err,curriculumdb) => {
@@ -121,12 +145,36 @@ app.post("/curriculum",(req,res)=>{
     }
 });
 
-app.get("/user-validated",(req,res)=> {
+app.get("/user-validated",(req,res) => {
     if (req.session.email && req.session.user) {
         User.findOneAndUpdate({
             email: req.session.email,
             user: req.session.user
         }, {validated: true}, (err, usuariodb) => {
+
+          var transporter = nodemailer.createTransport({
+              service: 'Hotmail',
+              auth: {
+                  user: 'elfarolitouaa@hotmail.com',
+                  pass: 'UAAisc2314'
+              }
+          });
+
+          var mailOptions = {
+              from: 'El Farolito',
+              to: req.session.email,
+              subject: 'Gracias por activar tu cuenta en el farolito.com',
+              text: 'Ahora busca trabajos en todo el mundo con tan solo un click'
+          };
+
+          transporter.sendMail(mailOptions, function(error, info){
+              if (error) {
+                  console.log(error);
+              } else {
+                  console.log('Email sent: ' + info.response);
+              }
+          });
+
             if (err) {
                 return res.status(400).json({
                     ok: false,
