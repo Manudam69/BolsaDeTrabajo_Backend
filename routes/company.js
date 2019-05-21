@@ -89,6 +89,18 @@ app.post("/login-company", (req, res) => {
     });
 });
 
+app.get("/logout-company",(req,res)=>{
+    if(req.session.email && req.session.password){
+        req.session = null;
+        return res.json({
+           ok:true
+        });
+    }
+    res.status(404).json({
+       ok:false
+    });
+});
+
 app.post("/job", (req, res) => {
     if (req.session.email && req.session.password) {
         Company.findOne({
@@ -99,7 +111,6 @@ app.post("/job", (req, res) => {
                     err
                 });
             }
-
         const newJob = new Job({
             companyName: companydb.companyName,
             projectName: req.body.projectName,
@@ -124,6 +135,51 @@ app.post("/job", (req, res) => {
         });
         });
     }
+});
+
+app.get("/delete-company",(req,res) => {
+  if(req.session.email && req.session.password){
+    Company.findOneAndRemove(req.session.email)
+    .exec(function(err, companydb) {
+      if (err) {
+        return res.status(500).json({
+          message: errorHandler.getErrorMessage(err)
+        });
+      } else {
+        request.session = null;
+        return res.status(200).json({
+          message: "Compañia eliminada",
+          companydb
+        });
+      }
+    });
+  }else{
+    return res.status(404).json({
+      message: "No existe sesion"
+    });
+  }
+});
+
+app.get("/delete-job",(req,res) =>{
+  if(req.session.email && req.session.password){
+    Company.findOne({
+    },(err,companydb) => {
+        if(err){
+            return res.status(500).json({
+                ok: false,
+                err
+            });
+        }
+    Job.findByIdAndRemove(req.body.id, (err, todo) => {
+    if (err) return res.status(500).send(err);
+    const response = {
+        message: "Todo successfully deleted",
+        id: req.body.id
+    };
+    return res.status(200).send(response);
+});
+    });
+  }
 });
 
 module.exports = app;

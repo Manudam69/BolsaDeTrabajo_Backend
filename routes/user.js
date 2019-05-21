@@ -188,4 +188,28 @@ app.get("/user-validated",(req,res) => {
         });
     }
 });
+
+app.get("/delete-user",(req,res) => {
+  if(req.session.user && req.session.email){
+    User.findOneAndRemove(req.session.email)
+    .exec(function(err, userdb) {
+      if (err) {
+        return res.status(500).json({
+          message: errorHandler.getErrorMessage(err)
+        });
+      } else {
+        req.session = null;
+        return res.status(200).json({
+          message: "Cuenta eliminada",
+          userdb
+        });
+      }
+    });
+  }else{
+    return res.status(404).json({
+      message: "No existe sesion"
+    });
+  }
+});
+
 module.exports = app;
