@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const Company = require("../models/company.js");
+const Job = require("../models/job.js");
 const cookieSession = require('cookie-session');
 const randomstring = require("randomstring");
 const nodemailer = require('nodemailer');
@@ -12,7 +13,7 @@ app.use(cookieSession({
     maxAge: 24 * 60 * 60 * 1000
 }));
 
-app.post("/signup-company", (req,res) => {
+app.post("/signup-company", (req, res) => {
     const newCompany = new Company({
         name: req.body.name,
         companyName: req.body.companyName,
@@ -22,8 +23,8 @@ app.post("/signup-company", (req,res) => {
         sat: req.body.sat,
         password: randomstring.generate(15)
     });
-    newCompany.save((err,companydb) => {
-        if(err){
+    newCompany.save((err, companydb) => {
+        if (err) {
             return res.status(500).json({
                 ok: false,
                 err
@@ -45,7 +46,7 @@ app.post("/signup-company", (req,res) => {
             text: 'Tu contraseña es ' + companydb.password
         };
 
-        transporter.sendMail(mailOptions, function(error, info){
+        transporter.sendMail(mailOptions, function (error, info) {
             if (error) {
                 console.log(error);
             } else {
@@ -60,32 +61,66 @@ app.post("/signup-company", (req,res) => {
     });
 });
 
-app.post("/login-company", (req,res) => {
-  Company.findOne({
-      email: req.body.email,
-      password: req.body.password
-  },(err,companydb) => {
-      if(err){
-          return res.status(500).json({
-              ok: false,
-              err
-          });
-      }
-      if(!companydb){
-          return res.status(404).json({
-             ok:false,
-              msg: "Error en correo o contraseña"
-          });
-      }
-      req.session.email = companydb.email;
-      req.session.user = companydb.user;
+app.post("/login-company", (req, res) => {
+    Company.findOne({
+        email: req.body.email,
+        password: req.body.password
+    }, (err, companydb) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                err
+            });
+        }
+        if (!companydb) {
+            return res.status(404).json({
+                ok: false,
+                msg: "Error en correo o contraseña"
+            });
+        }
+        req.session.email = companydb.email;
+        req.session.password = companydb.password;
 
-      res.json({
-         ok: true,
-          companydb,
+        res.json({
+            ok: true,
+            companydb,
 
-      });
-  });
+        });
+    });
+});
+
+app.post("/job", (req, res) => {
+    if (req.session.email && req.session.password) {
+        Company.findOne({
+        },(err,companydb) => {
+            if(err){
+                return res.status(500).json({
+                    ok: false,
+                    err
+                });
+            }
+
+        const newJob = new Job({
+            companyName: companydb.companyName,
+            projectName: req.body.projectName,
+            location: req.body.location,
+            salary: req.body.salary,
+            description: req.body.description
+        });
+        newJob.save((err, jobdb) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    err
+                });
+            }
+            res.status(201).json({
+                ok: true,
+                jobdb
+            });
+        });
+        });
+    }
 });
 
 module.exports = app;

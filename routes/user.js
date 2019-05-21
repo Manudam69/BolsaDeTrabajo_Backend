@@ -17,7 +17,8 @@ app.post("/signup", (req,res) => {
         name: req.body.name,
         user: req.body.user,
         email: req.body.email,
-        password: req.body.password
+        password: req.body.password,
+        validated: false
     });
     newUser.save((err,userdb) => {
         if(err){
@@ -87,19 +88,11 @@ app.get("/is-log",(req,res)=>{
 app.post("/curriculum",(req,res)=>{
     if(req.session.email && req.session.user) {
         User.findOne({
-            user: req.body.user,
-            email: req.body.email
         },(err,userdb) => {
             if(err){
                 return res.status(500).json({
                     ok: false,
                     err
-                });
-            }
-            if(!userdb){
-                return res.status(404).json({
-                    ok:false,
-                    msg: "Error en usuario o contraseña"
                 });
             }
 
@@ -128,4 +121,23 @@ app.post("/curriculum",(req,res)=>{
     }
 });
 
+app.get("/user-validated",(req,res)=> {
+    if (req.session.email && req.session.user) {
+        User.findOneAndUpdate({
+            email: req.session.email,
+            user: req.session.user
+        }, {validated: true}, (err, usuariodb) => {
+            if (err) {
+                return res.status(400).json({
+                    ok: false,
+                    err
+                });
+            }
+            res.json({
+                ok: true,
+                user: usuariodb
+            });
+        });
+    }
+});
 module.exports = app;
