@@ -6,6 +6,13 @@ const cookieSession = require('cookie-session');
 const randomstring = require("randomstring");
 const nodemailer = require('nodemailer');
 
+const transporter = nodemailer.createTransport({
+    service: "Hotmail",
+    auth: {
+        user: "elfarolitouaa@hotmail.com",
+        pass: "UAAisc2314"
+    }
+});
 
 app.use(cookieSession({
     name: 'session',
@@ -30,14 +37,6 @@ app.post("/signup-company", (req, res) => {
                 err
             });
         }
-
-        const transporter = nodemailer.createTransport({
-            service: 'Hotmail',
-            auth: {
-                user: 'elfarolitouaa@hotmail.com',
-                pass: 'UAAisc2314'
-            }
-        });
 
         const mailOptions = {
             from: 'El Farolito',
@@ -140,23 +139,24 @@ app.post("/job", (req, res) => {
 
 app.get("/delete-company",(req,res) => {
   if(req.session.email && req.session.password){
-    Company.findOneAndRemove(req.session.email)
-    .exec(function(err, companydb) {
+    Company.findOneAndRemove({
+        email: req.session.email,
+        password: req.session.password
+    }).exec(function(err, companydb) {
       if (err) {
         return res.status(500).json({
           message: errorHandler.getErrorMessage(err)
         });
-      } else {
-        request.session = null;
-        return res.status(200).json({
+      }
+      req.session = null;
+      res.status(200).json({
           message: "Compañia eliminada",
           companydb
-        });
-      }
+      });
     });
   }else{
-    return res.status(404).json({
-      message: "No existe sesion"
+    res.status(404).json({
+      message: "No existe sesion como compañia"
     });
   }
 });
@@ -171,10 +171,14 @@ app.get("/whoami",(req,res) => {
           companydb
         });
       });
+    }else{
+    res.status(404).json({
+        msg:"No tienes sesión como empresa"
+    });
     }
 });
 
-app.get("/delete-job",(req,res) =>{
+app.post("/delete-job",(req,res) =>{
   if(req.session.email && req.session.password){
     Company.findOne({
       email:req.session.email,
@@ -194,13 +198,11 @@ app.get("/delete-job",(req,res) =>{
             return res.status(500).json({
               message: errorHandler.getErrorMessage(err)
             });
-          } else {
-            return res.status(200).json({
+          }
+          res.status(200).json({
             message: "Vacante de trabajo eliminada",
           });
-        }
       });
-
     });
   }
 });

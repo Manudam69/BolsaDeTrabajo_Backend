@@ -5,11 +5,21 @@ var User = require("../models/user.js");
 var Curriculum = require("../models/curriculum.js");
 const cookieSession = require('cookie-session');
 
+const transporter = nodemailer.createTransport({
+    service: 'Hotmail',
+    auth: {
+        user: 'elfarolitouaa@hotmail.com',
+        pass: 'UAAisc2314'
+    }
+});
+
 app.use(cookieSession({
     name: 'session',
     keys: ['key_1', 'key_2'],
     maxAge: 24 * 60 * 60 * 1000
 }));
+
+var rand,host,link,mailOptions;
 
 //Registrando al usuario en la base de datos.
 app.post("/signup", (req,res) => {
@@ -21,29 +31,29 @@ app.post("/signup", (req,res) => {
         validated: false
     });
     newUser.save((err,userdb) => {
+        rand= Math.floor((Math.random() * 100) + 54);
+        host=req.get('host');
+        link="http://"+req.get('host')+"/verify?id="+rand;
+        mailOptions = {
+            from: 'El Farolito',
+            to : userdb.email,
+            subject : "Por favor confirma tu correo electrónico",
+            html : "Gracias por registrarte en el farolito," +
+                "<br> " +
+                "Por favor verifica tu cuenta de usuario." +
+                "<br>" +
+                "<a href="+link+">Click aqui para verificar</a>"
+        };
+        console.log(mailOptions);
+        transporter.sendMail(mailOptions, function(error, response){
+            if(error){
+                console.log(error);
+                res.end("error");
+            }else{
+                res.end("sent");
+            }
+        });
 
-      var transporter = nodemailer.createTransport({
-          service: 'Hotmail',
-          auth: {
-              user: 'elfarolitouaa@hotmail.com',
-              pass: 'UAAisc2314'
-          }
-      });
-
-      var mailOptions = {
-          from: 'El Farolito',
-          to: userdb.email,
-          subject: 'Gracias por registrarte en el farolito.com',
-          text: 'Click para verificar tu cuenta'
-      };
-
-      transporter.sendMail(mailOptions, function(error, info){
-          if (error) {
-              console.log(error);
-          } else {
-              console.log('Email sent: ' + info.response);
-          }
-      });
         if(err){
             return res.status(500).json({
                 ok: false,
@@ -53,6 +63,42 @@ app.post("/signup", (req,res) => {
         res.status(201).json({
             ok: true,
             userdb
+        });
+    });
+});
+
+app.get('/verify',function(req,res){
+    console.log(req.protocol+":/"+req.get('host'));
+    User.findOneAndUpdate({
+        email: mailOptions.to
+    },{validated: true},(err,userdb) => {
+        if((req.protocol+"://"+req.get('host'))==("http://"+host)){
+            console.log("Domain is matched. Information is from Authentic email");
+            if(req.query.id==rand) {
+                console.log("email is verified");
+                res.end("<h5>El correo "+mailOptions.to+" fue verificado exitosamente</h5>");
+            }else{
+                console.log("email is not verified");
+                res.end("<h5>Hubo un problema al verificar o el correo ya esta verificado</h5>");
+            }
+        }else{
+            res.end("<h5>Request is from unknown source</h5>");
+        }
+    });
+});
+
+app.post("/is-validated",(req,res) => {
+    User.findOne({
+        user: req.body.user
+    },(err,userdb) => {
+        if(err){
+            return res.status(500).json({
+                ok: false,
+                err
+            });
+        }
+        res.json({
+            validated: userdb.validated
         });
     });
 });
@@ -68,7 +114,6 @@ app.post("/login", (req,res) => {
                 err
             });
         }
-
         if(!userdb){
             return res.status(404).json({
                ok:false,
@@ -102,13 +147,9 @@ app.get("/is-log",(req,res) => {
         return res.json({
            ok:true
         });
-    }else{
-      return res.json({
-        ok: false
-      });
     }
-    res.status(401).json({
-        ok:false
+    res.json({
+        ok: false
     });
 });
 
@@ -151,81 +192,14 @@ app.post("/curriculum",(req,res)=>{
     }
 });
 
-app.get("/is-validated",(req,res) => {
-  if(req.session.email && req.session.user){
-    User.findOne({
-      email: req.session.email,
-      user: req.session.user
-    },(err,userdb) =>{
-      if(err){
-        return res.status(500).json({
-            ok: false,
-            err
-        });
-      }
-      return res.json({
-        validated: userdb.validated,
-        ok:true
-      });
-    });
-  }else{
-    return res.json({
-      validated:true,
-      ok:true
-    });
-  }
-});
 
-app.get("/user-validated",(req,res) => {
-    if (req.session.email && req.session.user) {
-        User.findOneAndUpdate({
-            email: req.session.email,
-            user: req.session.user
-        }, {validated: true}, (err, usuariodb) => {
-
-          var transporter = nodemailer.createTransport({
-              service: 'Hotmail',
-              auth: {
-                  user: 'elfarolitouaa@hotmail.com',
-                  pass: 'UAAisc2314'
-              }
-          });
-
-          var mailOptions = {
-              from: 'El Farolito',
-              to: req.session.email,
-              subject: 'Gracias por activar tu cuenta en el farolito.com',
-              text: 'Ahora busca trabajos en todo el mundo con tan solo un click'
-          };
-
-          transporter.sendMail(mailOptions, function(error, info){
-              if (error) {
-                  console.log(error);
-              } else {
-                  console.log('Email sent: ' + info.response);
-              }
-          });
-
-            if (err) {
-                return res.status(400).json({
-                    ok: false,
-                    err
-                });
-            }
-            res.json({
-                ok: true,
-                user: usuariodb
-            });
-        });
-    }
-});
 
 app.get("/delete-user",(req,res) => {
   if(req.session.user && req.session.email){
-    User.findOneAndRemove(
-      email = req.session.email,
-      user = req.session.user
-    ).exec(function(err, userdb) {
+    User.findOneAndRemove({
+        email: req.session.email,
+        user: req.session.user
+    }).exec(function(err, userdb) {
       if (err) {
         return res.status(500).json({
           message: errorHandler.getErrorMessage(err)
@@ -240,7 +214,7 @@ app.get("/delete-user",(req,res) => {
     });
   }else{
     return res.status(404).json({
-      message: "No existe sesion"
+      message: "No existe sesion como usuario"
     });
   }
 });
