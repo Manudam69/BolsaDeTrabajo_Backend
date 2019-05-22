@@ -97,11 +97,15 @@ app.get("/logout",(req,res)=>{
 });
 
 
-app.get("/is-log",(req,res)=>{
+app.get("/is-log",(req,res) => {
     if(req.session.email && req.session.user){
         return res.json({
            ok:true
         });
+    }else{
+      return res.json({
+        ok: false
+      });
     }
     res.status(401).json({
         ok:false
@@ -111,6 +115,8 @@ app.get("/is-log",(req,res)=>{
 app.post("/curriculum",(req,res)=>{
     if(req.session.email && req.session.user) {
         User.findOne({
+          user:req.session.user,
+          email:req.session.email
         },(err,userdb) => {
             if(err){
                 return res.status(500).json({
@@ -143,6 +149,31 @@ app.post("/curriculum",(req,res)=>{
         });
         });
     }
+});
+
+app.get("/is-validated",(req,res) => {
+  if(req.session.email && req.session.user){
+    User.findOne({
+      email: req.session.email,
+      user: req.session.user
+    },(err,userdb) =>{
+      if(err){
+        return res.status(500).json({
+            ok: false,
+            err
+        });
+      }
+      return res.json({
+        validated: userdb.validated,
+        ok:true
+      });
+    });
+  }else{
+    return res.json({
+      validated:true,
+      ok:true
+    });
+  }
 });
 
 app.get("/user-validated",(req,res) => {
@@ -191,8 +222,10 @@ app.get("/user-validated",(req,res) => {
 
 app.get("/delete-user",(req,res) => {
   if(req.session.user && req.session.email){
-    User.findOneAndRemove(req.session.email)
-    .exec(function(err, userdb) {
+    User.findOneAndRemove(
+      email = req.session.email,
+      user = req.session.user
+    ).exec(function(err, userdb) {
       if (err) {
         return res.status(500).json({
           message: errorHandler.getErrorMessage(err)

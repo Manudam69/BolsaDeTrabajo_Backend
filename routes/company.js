@@ -103,7 +103,7 @@ app.get("/logout-company",(req,res)=>{
 
 app.post("/job", (req, res) => {
     if (req.session.email && req.session.password) {
-        Company.findOne({
+        Company.findOne({ email: req.session.email,password:req.session.password
         },(err,companydb) => {
             if(err){
                 return res.status(500).json({
@@ -130,7 +130,8 @@ app.post("/job", (req, res) => {
             }
             res.status(201).json({
                 ok: true,
-                jobdb
+                jobdb,
+                companydb
             });
         });
         });
@@ -160,9 +161,24 @@ app.get("/delete-company",(req,res) => {
   }
 });
 
+app.get("/whoami",(req,res) => {
+    if(req.session.email && req.session.password){
+      Company.findOne({
+        email: req.session.email,
+        password:req.session.password
+      },(err,companydb) =>{
+        res.json({
+          companydb
+        });
+      });
+    }
+});
+
 app.get("/delete-job",(req,res) =>{
   if(req.session.email && req.session.password){
     Company.findOne({
+      email:req.session.email,
+      password:req.session.password
     },(err,companydb) => {
         if(err){
             return res.status(500).json({
@@ -170,14 +186,21 @@ app.get("/delete-job",(req,res) =>{
                 err
             });
         }
-    Job.findByIdAndRemove(req.body.id, (err, todo) => {
-    if (err) return res.status(500).send(err);
-    const response = {
-        message: "Todo successfully deleted",
-        id: req.body.id
-    };
-    return res.status(200).send(response);
-});
+        Job.findOneAndRemove({
+          projectName:req.body.projectName,
+          companyName:companydb.companyName
+        }).exec(function(err, userdb) {
+          if (err) {
+            return res.status(500).json({
+              message: errorHandler.getErrorMessage(err)
+            });
+          } else {
+            return res.status(200).json({
+            message: "Vacante de trabajo eliminada",
+          });
+        }
+      });
+
     });
   }
 });
