@@ -2,10 +2,24 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const userSchema = new Schema({
-    name: String,
-    user: String,
-    email: String,
-    password: String,
+    name: {
+        type: String,
+        required:[true, "Debes de especificar el nombre"]
+    },
+    user: {
+        type: String,
+        required:[true, "Debes de especificar el usuario"],
+        unique: true
+    },
+    email: {
+        type: String,
+        required:[true, "Debes de especificar el email"],
+        unique:true
+    },
+    password: {
+        type: String,
+        required:[true, "Debes de especificar la contraseña"]
+    },
     validated: Boolean
 });
 

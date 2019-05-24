@@ -6,6 +6,12 @@ const cookieSession = require('cookie-session');
 const randomstring = require("randomstring");
 const nodemailer = require('nodemailer');
 
+app.use(cookieSession({
+    name: 'session',
+    keys: ['key_1', 'key_2'],
+    maxAge: 24 * 60 * 60 * 1000
+}));
+
 const transporter = nodemailer.createTransport({
     service: "Hotmail",
     auth: {
@@ -13,12 +19,6 @@ const transporter = nodemailer.createTransport({
         pass: "UAAisc2314"
     }
 });
-
-app.use(cookieSession({
-    name: 'session',
-    keys: ['key_1', 'key_2'],
-    maxAge: 24 * 60 * 60 * 1000
-}));
 
 app.post("/signup-company", (req, res) => {
     const newCompany = new Company({
