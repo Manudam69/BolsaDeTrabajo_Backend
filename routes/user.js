@@ -243,24 +243,39 @@ app.get("/curriculum", (req, res) => {
 
 app.get("/delete-user", (req, res) => {
     if (req.session.user && req.session.email) {
-        User.findOneAndRemove({
-            email: req.session.email,
-            user: req.session.user
-        }).exec(function (err, userdb) {
-            if (err) {
-                return res.status(500).json({
-                    message: errorHandler.getErrorMessage(err)
-                });
-            } else {
-                req.session = null;
-                return res.status(200).json({
-                    message: "Cuenta eliminada",
-                    userdb
-                });
-            }
-        });
-    } else {
-        return res.status(404).json({
+       User.findOneAndDelete({
+           email: req.session.email,
+           user: req.session.user
+       },(err,userdb) =>{
+           if (err) {
+               return res.status(500).json({
+                   ok: false,
+                   err
+               });
+           }
+           Curriculum.findOneAndDelete({
+               email: req.session.email
+           },(err,curriculumdb) => {
+               if (err) {
+                   return res.status(500).json({
+                       ok: false,
+                       err
+                   });
+               }
+               if(!curriculumdb){
+                   return res.json({
+                      msg: "La cuenta no tenia curriculum"
+                   });
+               }
+            req.session = null;
+            return res.json({
+               message: "Cuenta eliminada",
+               userdb
+            });
+           });
+       });
+    }else{
+        res.status(404).json({
             message: "No existe sesion como usuario"
         });
     }
