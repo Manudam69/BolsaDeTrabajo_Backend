@@ -263,12 +263,15 @@ app.get("/delete-user", (req, res) => {
                    });
                }
                if(!curriculumdb){
+                   req.session = null;
                    return res.json({
+                       ok:true,
                       msg: "La cuenta no tenia curriculum"
                    });
                }
             req.session = null;
             return res.json({
+                ok:true,
                message: "Cuenta eliminada",
                userdb
             });
