@@ -20,7 +20,6 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-
 var rand, host, link, mailOptions;
 //Registrando al usuario en la base de datos.
 app.post("/signup", (req, res) => {
@@ -199,7 +198,8 @@ app.post("/curriculum-upload", (req, res) => {
                 birthDate: req.body.birthDate,
                 country: req.body.country,
                 profession: req.body.profession,
-                experience: req.body.experience
+                experience: req.body.experience,
+                visible: false
             });
             newCurriculum.save((err, curriculumdb) => {
                 if (err) {
@@ -280,6 +280,75 @@ app.get("/delete-user", (req, res) => {
     }else{
         res.status(404).json({
             message: "No existe sesion como usuario"
+        });
+    }
+});
+
+app.post("/modify-curriculum",(req,res) =>{
+    if(req.session.user && req.session.email){
+        User.findOne({
+            email: req.session.email
+        },(err,userdb) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    err
+                });
+            }
+            Curriculum.findOne({
+                email: userdb.email
+            },(err,curriculumdb) => {
+                if (err) {
+                    return res.status(500).json({
+                        ok: false,
+                        err
+                    });
+                }
+                if(!curriculumdb){
+                    return res.status(400).json({
+                        ok: false
+                    });
+                }
+
+                curriculumdb.address = req.body.address || curriculumdb.address;
+                curriculumdb.telephone = req.body.telephone || curriculumdb.telephone;
+                curriculumdb.birthDate = req.body.birthDate || curriculumdb.birthDate;
+                curriculumdb.country = req.body.country || curriculumdb.country;
+                curriculumdb.profession = req.body.profession || curriculumdb.profession;
+                curriculumdb.experience = req.body.experience || curriculumdb.experience;
+                curriculumdb.save();
+
+                res.status(200).json({
+                   ok: true,
+                   msg:"Curriculum actualizado"
+                });
+            });
+        });
+    }else{
+        res.json({
+            msg:"No existe sesion"
+        });
+    }
+});
+app.post("/modify-password",(req,res) => {
+    if(req.session.user && req.session.email){
+        User.findOne({
+            email: req.session.email,
+            user: req.session.user
+        },(err,userdb) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    err
+                });
+            }
+
+            userdb.password = req.body.password || userdb.password;
+            userdb.save();
+            res.status(200).json({
+                ok: true,
+                msg:"Contraseña actualizada"
+            });
         });
     }
 });
