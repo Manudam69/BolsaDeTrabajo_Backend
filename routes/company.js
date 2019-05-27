@@ -79,7 +79,7 @@ app.get('/verify-company', function (req, res) {
     Company.findOneAndUpdate({
         email: mailOptions.to
     }, {
-        validated: true
+      validated: true
     }, (err, userdb) => {
         if ((req.protocol + "://" + req.get('host')) == ("http://" + host)) {
             console.log("Domain is matched. Information is from Authentic email");
@@ -99,21 +99,21 @@ app.get('/verify-company', function (req, res) {
 app.post("/company-validated", (req, res) => {
     Company.findOne({
         email: req.body.email
-    }, (err, userdb) => {
+    }, (err, companydb) => {
         if (err) {
             return res.status(500).json({
                 ok: false,
                 err
             });
         }
-        if (!userdb) {
+        if (!companydb) {
             return res.status(400).json({
                 ok: false,
-                msg: "Usuario no encontrado"
+                msg: "Empresa no encontrado"
             });
         }
         res.json({
-            validated: userdb.validated
+            validated: companydb.validated
         });
     });
 });
@@ -310,7 +310,7 @@ app.post("/modify-job",(req,res) => {
                         ok: false
                     });
                 }
-                
+
                 jobdb.projectName = req.body.newprojectName || jobdb.projectName;
                 jobdb.category = req.body.category || jobdb.category;
                 jobdb.charge = req.body.charge || jobdb.charge;
