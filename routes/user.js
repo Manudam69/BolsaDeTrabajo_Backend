@@ -25,7 +25,6 @@ var rand, host, link, mailOptions;
 app.post("/signup", (req, res) => {
     const newUser = new User({
         name: req.body.name,
-        user: req.body.user,
         email: req.body.email,
         password: req.body.password,
         validated: false
@@ -94,7 +93,7 @@ app.get('/verify', function (req, res) {
 
 app.post("/is-validated", (req, res) => {
     User.findOne({
-        user: req.body.user
+        email: req.body.email
     }, (err, userdb) => {
         if (err) {
             return res.status(500).json({
@@ -116,7 +115,7 @@ app.post("/is-validated", (req, res) => {
 
 app.post("/login", (req, res) => {
     User.findOne({
-        user: req.body.user,
+        email: req.body.email,
         password: req.body.password
     }, (err, userdb) => {
         if (err) {
@@ -132,7 +131,6 @@ app.post("/login", (req, res) => {
             });
         }
         req.session.email = userdb.email;
-        req.session.user = userdb.user;
         res.json({
             ok: true,
             userdb
@@ -141,7 +139,7 @@ app.post("/login", (req, res) => {
 });
 
 app.get("/logout", (req, res) => {
-    if (req.session.email && req.session.user) {
+    if (req.session.email) {
         req.session = null;
         return res.json({
             ok: true
@@ -154,10 +152,9 @@ app.get("/logout", (req, res) => {
 
 
 app.get("/is-log", (req, res) => {
-    if (req.session.email && req.session.user) {
+    if (req.session.email) {
         User.findOne({
-            email: req.session.email,
-            user: req.session.user
+            email: req.session.email
         }, (err, userdb) => {
             if (err) {
                 return res.status(500).json({
@@ -178,9 +175,8 @@ app.get("/is-log", (req, res) => {
 });
 
 app.post("/curriculum-upload", (req, res) => {
-    if (req.session.email && req.session.user) {
+    if (req.session.email) {
         User.findOne({
-            user: req.session.user,
             email: req.session.email
         }, (err, userdb) => {
             if (err) {
@@ -218,7 +214,7 @@ app.post("/curriculum-upload", (req, res) => {
 });
 
 app.get("/curriculum", (req, res) => {
-    if (req.session.user && req.session.email) {
+    if (req.session.email) {
         Curriculum.findOne({
             email: req.session.email
         }, (err, curriculumdb) => {
@@ -242,10 +238,9 @@ app.get("/curriculum", (req, res) => {
 });
 
 app.get("/delete-user", (req, res) => {
-    if (req.session.user && req.session.email) {
+    if (req.session.email) {
        User.findOneAndDelete({
-           email: req.session.email,
-           user: req.session.user
+           email: req.session.email
        },(err,userdb) =>{
            if (err) {
                return res.status(500).json({
@@ -285,7 +280,7 @@ app.get("/delete-user", (req, res) => {
 });
 
 app.post("/modify-curriculum",(req,res) =>{
-    if(req.session.user && req.session.email){
+    if(req.session.email){
         User.findOne({
             email: req.session.email
         },(err,userdb) => {
@@ -331,10 +326,9 @@ app.post("/modify-curriculum",(req,res) =>{
     }
 });
 app.post("/modify-password",(req,res) => {
-    if(req.session.user && req.session.email){
+    if(req.session.email){
         User.findOne({
-            email: req.session.email,
-            user: req.session.user
+            email: req.session.email
         },(err,userdb) => {
             if (err) {
                 return res.status(500).json({

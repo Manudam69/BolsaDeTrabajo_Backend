@@ -96,6 +96,29 @@ app.get('/verify-company', function (req, res) {
     });
 });
 
+app.post("/company-validated", (req, res) => {
+    Company.findOne({
+        email: req.body.email
+    }, (err, userdb) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                err
+            });
+        }
+        if (!userdb) {
+            return res.status(400).json({
+                ok: false,
+                msg: "Usuario no encontrado"
+            });
+        }
+        res.json({
+            validated: userdb.validated
+        });
+    });
+});
+
+
 app.post("/login-company", (req, res) => {
     Company.findOne({
         email: req.body.email,

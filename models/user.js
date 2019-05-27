@@ -6,11 +6,6 @@ const userSchema = new Schema({
         type: String,
         required:[true, "Debes de especificar el nombre"]
     },
-    user: {
-        type: String,
-        required:[true, "Debes de especificar el usuario"],
-        unique: true
-    },
     email: {
         type: String,
         required:[true, "Debes de especificar el email"],
