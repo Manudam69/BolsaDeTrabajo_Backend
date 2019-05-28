@@ -1,17 +1,17 @@
 const express = require("express");
 const app = express();
-const Company = require("../models/company.js");
-const Job = require("../models/job.js");
-const cookieSession = require('cookie-session');
-const randomstring = require("randomstring");
-const nodemailer = require('nodemailer');
-
+const Company = require("../models/company.js"); //Importa el Schema de la compañia
+const Job = require("../models/job.js"); //Importa el Schema de los trabajos
+const cookieSession = require('cookie-session'); //Define una sesion que utiliza cookies
+const randomstring = require("randomstring"); //Define el uso de un randomstring
+const nodemailer = require('nodemailer'); //Define el uso de nodemailer para el uso de envio de correos
+//Define la sesion de cookie
 app.use(cookieSession({
-    name: 'session',
+    name: 'session', //Define el nombre de la sesion
     keys: ['key_1', 'key_2'],
-    maxAge: 24 * 60 * 60 * 1000
+    maxAge: 24 * 60 * 60 * 1000 //Define el tiempo maximo que tendra activa la cookie dentro del navegador
 }));
-
+//Para enviar los correos a los usuarios
 const transporter = nodemailer.createTransport({
     service: "Hotmail",
     auth: {
