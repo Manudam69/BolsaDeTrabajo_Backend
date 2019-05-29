@@ -1,29 +1,40 @@
 const express = require("express");
 const app = express();
 const Company = require("../models/company.js"); //Importa el Schema de la compañia
+var User = require("../models/user.js");
 const Job = require("../models/job.js"); //Importa el Schema de los trabajos
 const cookieSession = require('cookie-session'); //Define una sesion que utiliza cookies
 const randomstring = require("randomstring"); //Define el uso de un randomstring
 const nodemailer = require('nodemailer'); //Define el uso de nodemailer para el uso de envio de correos
 //Define la sesion de cookie
 app.use(cookieSession({
-    name: 'session', //Define el nombre de la sesion
-    keys: ['key_1', 'key_2'],
-    maxAge: 24 * 60 * 60 * 1000 //Define el tiempo maximo que tendra activa la cookie dentro del navegador
+  name: 'session', //Define el nombre de la sesion
+  keys: ['key_1', 'key_2'],
+  maxAge: 24 * 60 * 60 * 1000 //Define el tiempo maximo que tendra activa la cookie dentro del navegador
 }));
 //Para enviar los correos a los usuarios
 const transporter = nodemailer.createTransport({
-    service: "Hotmail",
-    auth: {
-        user: "elfarolitouaa@hotmail.com",
-        pass: "UAAisc2314"
-    }
+  service: "Hotmail",
+  auth: {
+    user: "elfarolitouaa@hotmail.com",
+    pass: "UAAisc2314"
+  }
 });
 
 var rand, host, link, mailOptions;
 
 app.post("/signup-company", (req, res) => {
-    const newCompany = new Company({
+  User.findOne({
+    email: req.body.email
+  }, (err, userdb) => {
+    if (err) {
+      return res.status(500).json({
+        ok: false,
+        err
+      });
+    }
+    if (!userdb) {
+      const newCompany = new Company({
         name: req.body.name,
         companyName: req.body.companyName,
         rfc: req.body.rfc,
@@ -33,13 +44,13 @@ app.post("/signup-company", (req, res) => {
         password: randomstring.generate(15),
         validated: false,
         type: "company"
-    });
-    newCompany.save((err, companydb) => {
+      });
+      newCompany.save((err, companydb) => {
         if (err) {
-            return res.status(500).json({
-                ok: false,
-                err
-            });
+          return res.status(500).json({
+            ok: false,
+            err
+          });
         }
 
         rand = Math.floor((Math.random() * 100) + 54);
@@ -47,290 +58,322 @@ app.post("/signup-company", (req, res) => {
         link = "http://" + req.get('host') + "/verify-company?id=" + rand;
 
         mailOptions = {
-            from: 'El Farolito',
-            to: companydb.email,
-            subject: "Por favor confirma tu correo electrónico",
-            html: "Gracias por registrar tu empresa en el farolito," +
-                "<br> " +
-                "Por favor verifica tu cuenta." +
-                "<br>" +
-                "<a href=" + link + ">Click aqui para verificar</a>"+
-                "<br> " +
-                "<p>La contraseña es: </p>" + companydb.password
+          from: 'El Farolito',
+          to: companydb.email,
+          subject: "Por favor confirma tu correo electrónico",
+          html: "Gracias por registrar tu empresa en el farolito," +
+            "<br> " +
+            "Por favor verifica tu cuenta." +
+            "<br>" +
+            "<a href=" + link + ">Click aqui para verificar</a>" +
+            "<br> " +
+            "<p>La contraseña es: </p>" + companydb.password
         };
 
-        transporter.sendMail(mailOptions, function (error, response) {
-            if (error) {
-                console.log(error);
-                res.end("error");
-            } else {
-                res.end("sent");
-            }
+        transporter.sendMail(mailOptions, function(error, response) {
+          if (error) {
+            console.log(error);
+            res.end("error");
+          } else {
+            res.end("sent");
+          }
         });
 
         res.status(201).json({
-            ok: true,
-            companydb
+          ok: true,
+          companydb
         });
-    });
+      });
+    } else {
+      return res.json({
+        ok: false,
+        msg: "El correo electrónico ya existe en nuestro sistema."
+      });
+    }
+  });
 });
 
-app.get('/verify-company', function (req, res) {
-    console.log(req.protocol + ":/" + req.get('host'));
-    Company.findOneAndUpdate({
-        email: mailOptions.to
-    }, {
-      validated: true
-    }, (err, userdb) => {
-        if ((req.protocol + "://" + req.get('host')) == ("http://" + host)) {
-            console.log("Domain is matched. Information is from Authentic email");
-            if (req.query.id == rand) {
-                console.log("email is verified");
-                res.end("<h5>El correo " + mailOptions.to + " fue verificado exitosamente");
-            } else {
-                console.log("email is not verified");
-                res.end("<h5>Hubo un problema al verificar o el correo ya esta verificado</h5>");
-            }
-        } else {
-            res.end("<h5>Request is from unknown source</h5>");
-        }
-    });
+app.get('/verify-company', function(req, res) {
+  console.log(req.protocol + ":/" + req.get('host'));
+  Company.findOneAndUpdate({
+    email: mailOptions.to
+  }, {
+    validated: true
+  }, (err, userdb) => {
+    if ((req.protocol + "://" + req.get('host')) == ("http://" + host)) {
+      console.log("Domain is matched. Information is from Authentic email");
+      if (req.query.id == rand) {
+        console.log("email is verified");
+        res.end("<h5>El correo " + mailOptions.to + " fue verificado exitosamente");
+      } else {
+        console.log("email is not verified");
+        res.end("<h5>Hubo un problema al verificar o el correo ya esta verificado</h5>");
+      }
+    } else {
+      res.end("<h5>Request is from unknown source</h5>");
+    }
+  });
 });
 
 app.post("/company-validated", (req, res) => {
-    Company.findOne({
-        email: req.body.email
-    }, (err, companydb) => {
-        if (err) {
-            return res.status(500).json({
-                ok: false,
-                err
-            });
-        }
-        if (!companydb) {
-            return res.status(400).json({
-                ok: false,
-                msg: "Empresa no encontrado"
-            });
-        }
-        res.json({
-            validated: companydb.validated
-        });
+  Company.findOne({
+    email: req.body.email
+  }, (err, companydb) => {
+    if (err) {
+      return res.status(500).json({
+        ok: false,
+        err
+      });
+    }
+    if (!companydb) {
+      return res.status(400).json({
+        ok: false,
+        msg: "Empresa no encontrado"
+      });
+    }
+    res.json({
+      validated: companydb.validated
     });
+  });
 });
 
 
 app.post("/login-company", (req, res) => {
-    Company.findOne({
+  Company.findOne({
+    email: req.body.email
+  }, (err, companyvalidated) => {
+    if (err) {
+      return res.status(500).json({
+        ok: false,
+        err
+      });
+    }
+    if (!companyvalidated) {
+      return res.status(404).json({
+        ok: false,
+        msg: "Correo electrónico no registrado"
+      });
+    }
+    if (companyvalidated.validated) {
+      Company.findOne({
         email: req.body.email,
         password: req.body.password
-    }, (err, companydb) => {
+      }, (err, companydb) => {
         if (err) {
-            return res.status(500).json({
-                ok: false,
-                err
-            });
+          return res.status(500).json({
+            ok: false,
+            err
+          });
         }
         if (!companydb) {
-            return res.status(404).json({
-                ok: false,
-                msg: "Error en correo o contraseña"
-            });
+          return res.status(404).json({
+            ok: false,
+            msg: "Error en correo electrónico o contraseña"
+          });
         }
         req.session.email = companydb.email;
         req.session.password = companydb.password;
 
         res.json({
-            ok: true,
-            companydb,
+          ok: true,
+          companydb,
 
         });
-    });
+      });
+    } else {
+      return res.status(403).json({
+        ok: false,
+        msg: "El correo electrónico no esta verificado, por favor verifica tu correo electrónico"
+      });
+    }
+  });
 });
 
-app.get("/logout-company",(req,res)=>{
-    if(req.session.email && req.session.password){
-        req.session = null;
-        return res.json({
-           ok:true
-        });
-    }
-    res.status(404).json({
-       ok:false
+app.get("/logout-company", (req, res) => {
+  if (req.session.email && req.session.password) {
+    req.session = null;
+    return res.json({
+      ok: true
     });
+  }
+  res.status(404).json({
+    ok: false
+  });
 });
 
 app.post("/job", (req, res) => {
-    if (req.session.email && req.session.password) {
-        Company.findOne({ email: req.session.email,password:req.session.password
-        },(err,companydb) => {
-            if(err){
-                return res.status(500).json({
-                    ok: false,
-                    err
-                });
-            }
-        const newJob = new Job({
-            companyName: companydb.companyName,
-            projectName: req.body.projectName,
-            category: req.body.category,
-            charge: req.body.charge,
-            location: req.body.location,
-            salary: req.body.salary,
-            requirements: req.body.requirements,
-            description: req.body.description
+  if (req.session.email && req.session.password) {
+    Company.findOne({
+      email: req.session.email,
+      password: req.session.password
+    }, (err, companydb) => {
+      if (err) {
+        return res.status(500).json({
+          ok: false,
+          err
         });
-        newJob.save((err, jobdb) => {
-            if (err) {
-                return res.status(500).json({
-                    ok: false,
-                    err
-                });
-            }
-            res.status(201).json({
-                ok: true,
-                jobdb,
-                companydb
-            });
-        });
-        });
-    }
-});
-
-app.get("/delete-company",(req,res) => {
-  if(req.session.email && req.session.password){
-      Company.findOneAndDelete({
-          email: req.session.email,
-          password: req.session.password
-        }, (err, companydb) => {
-          if (err) {
-              return res.status(500).json({
-                  ok: false,
-                  err
-              });
-          }
-          Job.deleteMany({
-              companyName: companydb.companyName
-          },(err,jobdb) =>{
-              if (err) {
-                  return res.status(500).json({
-                      ok: false,
-                      err
-                  });
-              }
-              if(!jobdb){
-                  req.session = null;
-                  return res.json({
-                      ok:true,
-                      msg: "La cuenta no tenia vacantes de trabajo"
-                  });
-              }
-
-              req.session = null;
-              return res.json({
-                  ok:true,
-                  message: "Cuenta eliminada",
-                  companydb
-              });
+      }
+      const newJob = new Job({
+        companyName: companydb.companyName,
+        projectName: req.body.projectName,
+        category: req.body.category,
+        charge: req.body.charge,
+        location: req.body.location,
+        salary: req.body.salary,
+        requirements: req.body.requirements,
+        description: req.body.description
+      });
+      newJob.save((err, jobdb) => {
+        if (err) {
+          return res.status(500).json({
+            ok: false,
+            err
           });
-      });
-  }else{
-      res.status(404).json({
-          message: "No existe sesion como compañia"
-      });
-  }
-});
-
-app.get("/whoami",(req,res) => {
-    if(req.session.email && req.session.password){
-      Company.findOne({
-        email: req.session.email,
-        password:req.session.password
-      },(err,companydb) =>{
-        res.json({
+        }
+        res.status(201).json({
+          ok: true,
+          jobdb,
           companydb
         });
       });
-    }else{
-    res.status(404).json({
-        msg:"No tienes sesión como empresa"
     });
-    }
-});
-
-app.post("/delete-job",(req,res) =>{
-  if(req.session.email && req.session.password){
-    Company.findOne({
-      email:req.session.email,
-      password:req.session.password
-    },(err,companydb) => {
-        if(err){
-            return res.status(500).json({
-                ok: false,
-                err
-            });
-        }
-        Job.findOneAndRemove({
-          projectName:req.body.projectName,
-          companyName:companydb.companyName
-        }).exec(function(err, jobdb) {
-          if (err) {
-            return res.status(500).json({
-              message: errorHandler.getErrorMessage(err)
-            });
-          }
-          res.status(200).json({
-            message: "Vacante de trabajo eliminada",
-              jobdb
-          });
-      });
-    });
-  }else{
-      res.status(200).json({
-          message: "No existe sesión como empresa",
-      });
   }
 });
 
-app.post("/modify-job",(req,res) => {
-    if(req.session.email && req.session.password){
-        Company.findOne({
-            email: req.session.email
-        },(err,companydb) => {
-            if (err) {
-                return res.status(500).json({
-                    message: errorHandler.getErrorMessage(err)
-                });
-            }
-            Job.findOne({
-                projectName: req.body.projectName,
-                companyName: companydb.companyName
-            },(err,jobdb) => {
-                if(!jobdb){
-                    return res.status(400).json({
-                        ok: false
-                    });
-                }
+app.get("/delete-company", (req, res) => {
+  if (req.session.email && req.session.password) {
+    Company.findOneAndDelete({
+      email: req.session.email,
+      password: req.session.password
+    }, (err, companydb) => {
+      if (err) {
+        return res.status(500).json({
+          ok: false,
+          err
+        });
+      }
+      Job.deleteMany({
+        companyName: companydb.companyName
+      }, (err, jobdb) => {
+        if (err) {
+          return res.status(500).json({
+            ok: false,
+            err
+          });
+        }
+        if (!jobdb) {
+          req.session = null;
+          return res.json({
+            ok: true,
+            msg: "La cuenta no tenia vacantes de trabajo"
+          });
+        }
 
-                jobdb.projectName = req.body.newprojectName || jobdb.projectName;
-                jobdb.category = req.body.category || jobdb.category;
-                jobdb.charge = req.body.charge || jobdb.charge;
-                jobdb.location = req.body.location || jobdb.location;
-                jobdb.salary = req.body.salary || jobdb.salary;
-                jobdb.requirements = req.body.requirements || jobdb.requirements;
-                jobdb.description = req.body.description || jobdb.description;
-                jobdb.save();
-                res.status(200).json({
-                    ok: true,
-                    msg:"Vacante de trabajo actualizada"
-                });
-            });
+        req.session = null;
+        return res.json({
+          ok: true,
+          message: "Cuenta eliminada",
+          companydb
         });
-    }else{
-        res.json({
-            msg:"No existe sesion"
+      });
+    });
+  } else {
+    res.status(404).json({
+      message: "No existe sesion como compañia"
+    });
+  }
+});
+
+app.get("/whoami", (req, res) => {
+  if (req.session.email && req.session.password) {
+    Company.findOne({
+      email: req.session.email,
+      password: req.session.password
+    }, (err, companydb) => {
+      res.json({
+        companydb
+      });
+    });
+  } else {
+    res.status(404).json({
+      msg: "No tienes sesión como empresa"
+    });
+  }
+});
+
+app.post("/delete-job", (req, res) => {
+  if (req.session.email && req.session.password) {
+    Company.findOne({
+      email: req.session.email,
+      password: req.session.password
+    }, (err, companydb) => {
+      if (err) {
+        return res.status(500).json({
+          ok: false,
+          err
         });
-    }
+      }
+      Job.findOneAndRemove({
+        projectName: req.body.projectName,
+        companyName: companydb.companyName
+      }).exec(function(err, jobdb) {
+        if (err) {
+          return res.status(500).json({
+            message: errorHandler.getErrorMessage(err)
+          });
+        }
+        res.status(200).json({
+          message: "Vacante de trabajo eliminada",
+          jobdb
+        });
+      });
+    });
+  } else {
+    res.status(200).json({
+      message: "No existe sesión como empresa",
+    });
+  }
+});
+
+app.post("/modify-job", (req, res) => {
+  if (req.session.email && req.session.password) {
+    Company.findOne({
+      email: req.session.email
+    }, (err, companydb) => {
+      if (err) {
+        return res.status(500).json({
+          message: errorHandler.getErrorMessage(err)
+        });
+      }
+      Job.findOne({
+        projectName: req.body.projectName,
+        companyName: companydb.companyName
+      }, (err, jobdb) => {
+        if (!jobdb) {
+          return res.status(400).json({
+            ok: false
+          });
+        }
+
+        jobdb.projectName = req.body.newprojectName || jobdb.projectName;
+        jobdb.category = req.body.category || jobdb.category;
+        jobdb.charge = req.body.charge || jobdb.charge;
+        jobdb.location = req.body.location || jobdb.location;
+        jobdb.salary = req.body.salary || jobdb.salary;
+        jobdb.requirements = req.body.requirements || jobdb.requirements;
+        jobdb.description = req.body.description || jobdb.description;
+        jobdb.save();
+        res.status(200).json({
+          ok: true,
+          msg: "Vacante de trabajo actualizada"
+        });
+      });
+    });
+  } else {
+    res.json({
+      msg: "No existe sesion"
+    });
+  }
 });
 
 module.exports = app;
