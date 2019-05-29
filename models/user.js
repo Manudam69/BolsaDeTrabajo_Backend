@@ -20,7 +20,8 @@ const userSchema = new Schema({
         required:[true, "Debes de especificar la contraseña"] //Especifica que este campo es obligatorio de llenar
     },
     //Campo de la validacion del usuario
-    validated: Boolean
+    validated: Boolean,
+    type: String
 });
 
 module.exports = mongoose.model("User",userSchema,"user"); //Creacion del Schema bajo el nombre de User

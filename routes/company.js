@@ -31,7 +31,8 @@ app.post("/signup-company", (req, res) => {
         telephone: req.body.telephone,
         sat: req.body.sat,
         password: randomstring.generate(15),
-        validated: false
+        validated: false,
+        type: "company"
     });
     newCompany.save((err, companydb) => {
         if (err) {
