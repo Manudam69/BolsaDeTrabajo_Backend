@@ -79,7 +79,7 @@ app.post("/signup", (req, res) => {
         });
       });
     } else {
-      return res.json({
+      return res.status(400).json({
         ok: false,
         msg: "El correo electrónico ya existe en nuestro sistema."
       });
