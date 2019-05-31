@@ -291,7 +291,8 @@ app.get("/whoami", (req, res) => {
       password: req.session.password
     }, (err, companydb) => {
       res.json({
-        companydb
+        ok: true,
+        company: companydb
       });
     });
   } else {
