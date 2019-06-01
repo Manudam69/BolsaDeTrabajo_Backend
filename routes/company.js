@@ -190,7 +190,7 @@ app.post("/login-company", (req, res) => {
 });
 
 app.get("/logout-company", (req, res) => {
-  if (req.session.email && req.session.password) {
+  if (req.session.email) {
     req.session = null;
     return res.json({
       ok: true
@@ -280,24 +280,6 @@ app.get("/delete-company", (req, res) => {
   } else {
     res.status(404).json({
       message: "No existe sesion como compañia"
-    });
-  }
-});
-
-app.get("/whoami", (req, res) => {
-  if (req.session.email && req.session.password) {
-    Company.findOne({
-      email: req.session.email,
-      password: req.session.password
-    }, (err, companydb) => {
-      res.json({
-        ok: true,
-        company: companydb
-      });
-    });
-  } else {
-    res.status(404).json({
-      msg: "No tienes sesión como empresa"
     });
   }
 });
