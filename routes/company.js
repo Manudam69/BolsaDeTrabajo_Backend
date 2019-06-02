@@ -178,33 +178,25 @@ app.get("/job", (req, res) => {
         Company.findOne({
             email: req.session.email
         }, (err, companydb) => {
-            if (err) {
-                return res.status(500).json({
-                    ok: false,
-                    err
-                });
-            }
             Job.find({
                 companyName: companydb.companyName
-            },(err,jobdb) =>{
+            },(err,jobdb) => {
                 if (err) {
                     return res.status(500).json({
                         ok: false,
                         err
                     });
                 }
-                if (!jobdb) {
+                if (jobdb.length <= 0) {
                     return res.status(400).json({
                         ok: false
                     });
                 }
-
-                res.json({
+                res.status(200).json({
                     ok: true,
                     job: jobdb
                 });
             });
-
         });
     }
 });
