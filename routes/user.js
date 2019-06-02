@@ -109,51 +109,43 @@ app.get('/verify', function (req, res) {
     });
 });
 
-app.post("/is-validated", (req, res) => {
-    User.findOne({
-        email: req.body.email
-    }, (err, userdb) => {
-        if (err) {
-            return res.status(500).json({
-                ok: false,
-                err
-            });
-        }
-        if (!userdb) {
-            return res.status(400).json({
-                ok: false,
-                msg: "Usuario no encontrado"
-            });
-        }
-        res.json({
-            validated: userdb.validated
-        });
-    });
-});
-
 app.post("/login", async (req, res) => {
     const userdb = await User.findOne({
         email: req.body.email,
         password: req.body.password,
-        validated: true
     });
     if (!userdb){
         const companydb = await  Company.findOne({
             email: req.body.email,
             password: req.body.password,
-            validated: true
         });
 
         if(!companydb){
             return res.status(400).json({
+                msg: "Correo electrónico o contraseña incorrectos",
                 ok:false
             });
+        }
+
+        if(!companydb.validated){
+            return res.status(403).json({
+                ok:false,
+                msg:"Correo electrónico no verificado, por favor verificalo."
+            })
         }
         req.session.email = companydb.email;
         return res.json({
             ok: true
         });
     }
+
+    if(!userdb.validated){
+        return res.status(403).json({
+            ok:false,
+            msg:"Correo electrónico no verificado, por favor verificalo."
+        })
+    }
+
     req.session.email = userdb.email;
     return res.json({
         ok: true
@@ -356,6 +348,7 @@ app.post("/modify-curriculum", (req, res) => {
         });
     }
 });
+
 app.post("/modify-password", (req, res) => {
     if (req.session.email) {
         User.findOne({
