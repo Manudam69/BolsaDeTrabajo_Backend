@@ -201,6 +201,27 @@ app.get("/job", (req, res) => {
     }
 });
 
+app.get("/jobs",(req,res) =>{
+  Job.find({
+  },(err,jobdb) => {
+      if (err) {
+          return res.status(500).json({
+              ok: false,
+              err
+          });
+      }
+      if (jobdb.length <= 0) {
+          return res.status(400).json({
+              ok: false
+          });
+      }
+      res.status(200).json({
+          ok: true,
+          job: jobdb
+      });
+  });
+});
+
 app.get("/delete-company", (req, res) => {
     if (req.session.email) {
         Company.findOneAndDelete({
