@@ -222,6 +222,25 @@ app.get("/jobs",(req,res) =>{
   });
 });
 
+app.post("/req-job",(req,res) =>{
+    Job.findOne({
+        _id: req.body.id
+    },(err,jobdb) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                err
+            });
+        }
+
+        res.status(200).json({
+            ok: true,
+            job: jobdb
+        });
+    });
+});
+
+
 app.get("/delete-company", (req, res) => {
     if (req.session.email) {
         Company.findOneAndDelete({
