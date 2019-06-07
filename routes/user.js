@@ -290,15 +290,15 @@ app.post("/req-curr", (req, res) => {
   }, (err, curriculumdb) => {
 
     if (err) {
-        return res.status(500).json({
-            ok: false,
-            err
-        });
+      return res.status(500).json({
+        ok: false,
+        err
+      });
     }
 
     res.status(200).json({
-        ok: true,
-        curriculum: curriculumdb
+      ok: true,
+      curriculum: curriculumdb
     });
   });
 });
@@ -341,6 +341,38 @@ app.get("/delete-user", (req, res) => {
   } else {
     res.status(404).json({
       message: "No existe sesion como usuario"
+    });
+  }
+});
+
+app.get("/curriculum-visible", (req, res) => {
+  if (req.session.email) {
+    Curriculum.findOne({
+      email: req.session.email
+    }, (err, curriculumdb) => {
+      if (err) {
+        return res.status(500).json({
+          ok: false,
+          err
+        });
+      }
+
+      if (!curriculumdb) {
+        return res.status(400).json({
+          ok: false
+        });
+      }
+
+      if (curriculumdb.visible) {
+        curriculumdb.visible= false;
+      } else {
+        curriculumdb.visible= true;
+      }
+      curriculumdb.save();
+      res.status(200).json({
+        ok: true,
+        msg: "Curriculum actualizado"
+      });
     });
   }
 });
