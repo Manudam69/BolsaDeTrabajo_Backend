@@ -5,6 +5,7 @@ const Schema = mongoose.Schema;
 const jobSchema = new Schema({
 
     companyName:String,
+    email: String,
     projectName: {
         type:String,
         required:[true, "Debes de especificar el nombre del proyecto"]

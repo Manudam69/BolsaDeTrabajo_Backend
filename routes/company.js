@@ -147,6 +147,7 @@ app.post("/job-upload", (req, res) => {
             }
             const newJob = new Job({
                 companyName: companydb.companyName,
+                email: companydb.email,
                 projectName: req.body.projectName,
                 category: req.body.category,
                 charge: req.body.charge,
