@@ -479,10 +479,10 @@ app.post("/apply", (req, res) => {
             }
         });
         res.status(200).json({
-            ok:true,
-            msg:"coreo enviado"
+            ok: true,
+            msg: "correo enviado"
         });
-    }else{
+    } else {
         res.status(403).json({
             ok: false,
             msg: "Usuario sin sesion"

@@ -181,7 +181,7 @@ app.get("/job", (req, res) => {
         }, (err, companydb) => {
             Job.find({
                 companyName: companydb.companyName
-            },(err,jobdb) => {
+            }, (err, jobdb) => {
                 if (err) {
                     return res.status(500).json({
                         ok: false,
@@ -202,31 +202,30 @@ app.get("/job", (req, res) => {
     }
 });
 
-app.get("/jobs",(req,res) =>{
-  Job.find({
-  },(err,jobdb) => {
-      if (err) {
-          return res.status(500).json({
-              ok: false,
-              err
-          });
-      }
-      if (jobdb.length <= 0) {
-          return res.status(400).json({
-              ok: false
-          });
-      }
-      res.status(200).json({
-          ok: true,
-          job: jobdb
-      });
-  });
+app.get("/jobs", (req, res) => {
+    Job.find({}, (err, jobdb) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                err
+            });
+        }
+        if (jobdb.length <= 0) {
+            return res.status(400).json({
+                ok: false
+            });
+        }
+        res.status(200).json({
+            ok: true,
+            job: jobdb
+        });
+    });
 });
 
-app.post("/req-job",(req,res) =>{
+app.post("/req-job", (req, res) => {
     Job.findOne({
         _id: req.body.id
-    },(err,jobdb) => {
+    }, (err, jobdb) => {
         if (err) {
             return res.status(500).json({
                 ok: false,
@@ -288,7 +287,7 @@ app.get("/delete-company", (req, res) => {
 app.post("/delete-job", (req, res) => {
     if (req.session.email) {
         Company.findOne({
-            email: req.session.email,
+            email: req.session.email || null,
         }, (err, companydb) => {
             if (err) {
                 return res.status(500).json({
@@ -297,7 +296,7 @@ app.post("/delete-job", (req, res) => {
                 });
             }
             Job.findOneAndRemove({
-                projectName: req.body.projectName,
+                projectName: req.body.project.projectName,
                 companyName: companydb.companyName
             }).exec(function (err, jobdb) {
                 if (err) {
@@ -329,12 +328,14 @@ app.post("/modify-job", (req, res) => {
                 });
             }
             Job.findOne({
-                projectName: req.body.projectName,
+                projectName: req.body.projectName.projectName,
                 companyName: companydb.companyName
             }, (err, jobdb) => {
                 if (!jobdb) {
                     return res.status(400).json({
-                        ok: false
+                        ok: false,
+                        msg:"no existe",
+                        pro: req.body.projectName
                     });
                 }
 
@@ -357,6 +358,40 @@ app.post("/modify-job", (req, res) => {
             msg: "No existe sesion"
         });
     }
+});
+
+app.post("/quest",(req,res) => {
+    if(req.session.email){
+        mailOptions = {
+            from: 'El Farolito',
+            to: req.body.email,
+            subject: "Una empresa esta interesada en ti",
+            html:
+                "<a href=" + req.body.joblink + ">Click aqui para ver la vacante de trabajo</a>" +
+                "<br> " +
+                "La empresa le gustaria que respondieras lo siguiente: <br>" + req.body.questions + "<br>" +
+                "Puedes contactar a la empresa en este email: " + req.body.companyEmail
+
+        };
+
+        transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.log(error);
+            } else {
+                console.log('Email sent: ' + info.response);
+            }
+        });
+
+        return res.status(200).json({
+            ok: true,
+            msg: "correo enviado"
+        });
+    }
+
+    res.status(403).json({
+        ok: false,
+        msg: "Usuario sin sesion"
+    });
 });
 
 module.exports = app;
