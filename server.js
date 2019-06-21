@@ -15,7 +15,7 @@ app.use(bodyParser.json());
 // Configuración global de rutas
 app.use(require('./routes/index'));
 
-
+//Conexion a mongo
 mongoose.connect("mongodb+srv://Manudam69:T69nDj4aPMIjQph0@elfarolito-ud4bm.gcp.mongodb.net/test", {
     useNewUrlParser: true,
     useFindAndModify: false,
@@ -24,7 +24,7 @@ mongoose.connect("mongodb+srv://Manudam69:T69nDj4aPMIjQph0@elfarolito-ud4bm.gcp.
     if (err) throw err;
     console.log(`Base de datos online en el puerto ${res.port}`);
 });
-
+//Puerto a escuchar 
 app.listen(8000,function () {
    console.log("Servidor iniciado");
 });
