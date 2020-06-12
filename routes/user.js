@@ -3,6 +3,7 @@ const app = express();
 var nodemailer = require('nodemailer');
 var User = require("../models/user.js");
 var Curriculum = require("../models/curriculum.js");
+var State = require("../models/state.js");
 const Company = require("../models/company.js");
 const cookieSession = require('cookie-session');
 //Creacion de la sesion por medio de cookies
@@ -34,7 +35,7 @@ app.post("/signup", (req, res) => {
         }
         if (!companydb) {//Creacion de nuevo usuarios
             const newUser = new User({
-              //Datos recuperados del front
+                //Datos recuperados del front
                 name: req.body.name,
                 email: req.body.email,
                 password: req.body.password,
@@ -209,54 +210,63 @@ app.post("/curriculum-upload", (req, res) => {
                     err
                 });
             }
-            //Creacion de nuevo curriculum
-            const newCurriculum = new Curriculum({
-                //Datos recuperados del front
-                name: userdb.name,
-                address: req.body.address,
-                telephone: req.body.telephone,
-                email: userdb.email,
-                birthDate: req.body.birthDate,
-                country: req.body.country,
-                profession: req.body.profession,
-                experience: req.body.experience,
-                visible: false
+
+            const newState = new State({
+                state: req.body.state
             });
-            newCurriculum.save((err, curriculumdb) => { //Creacion de curriculum en la base
-                if (err) {
-                    return res.status(500).json({ //Fallo
-                        ok: false,
-                        err
+
+            newState.save((err, statedb) => {
+                if (err) throw err;
+                const newCurriculum = new Curriculum({
+                    //Datos recuperados del front
+                    name: userdb.name,
+                    address: req.body.address,
+                    telephone: req.body.telephone,
+                    email: userdb.email,
+                    birthDate: req.body.birthDate,
+                    profession: req.body.profession,
+                    experience: req.body.experience,
+                    visible: false,
+                    idstate: statedb._id
+                });
+
+                newCurriculum.save((err, curriculumdb) => { //Creacion de curriculum en la base
+                    if (err) {
+                        return res.status(500).json({ //Fallo
+                            ok: false,
+                            err
+                        });
+                    }
+                    res.status(201).json({ //Exito
+                        ok: true,
+                        curriculumdb
                     });
-                }
-                res.status(201).json({ //Exito
-                    ok: true,
-                    curriculumdb
                 });
             });
         });
     }
 });
+
 //Buscar un curriculum
 app.get("/curriculum", (req, res) => {
     if (req.session.email) { //Verifica la sesion inicada
         Curriculum.findOne({ //Busca en la base de datos
             email: req.session.email
         }, (err, curriculumdb) => {
-            if (err) {
-                return res.status(500).json({ //Fallo
-                    ok: false,
-                    err
-                });
-            }
+            if (err) throw err;
             if (!curriculumdb) { //No existe el curriculum
                 return res.json({
                     ok: false
                 });
             }
-            res.json({ //Curriculum encontrado
-                ok: true,
-                curriculum: curriculumdb
+            State.findOne({
+                _id: curriculumdb.idstate
+            }, (err, statedb) => {
+                res.json({ //Curriculum encontrado
+                    ok: true,
+                    curriculum: curriculumdb,
+                    state: statedb
+                });
             });
         });
     }
@@ -266,12 +276,7 @@ app.get("/curriculums", (req, res) => {
     Curriculum.find({
         visible: true
     }, (err, curriculumdb) => {
-        if (err) {
-            return res.status(500).json({
-                ok: false,
-                err
-            });
-        }
+        if (err) throw err;
         if (!curriculumdb) {
             return res.status(400).json({
                 ok: false
@@ -290,17 +295,15 @@ app.post("/req-curr", (req, res) => {
     Curriculum.findOne({
         _id: req.body.id
     }, (err, curriculumdb) => {
-
-        if (err) {
-            return res.status(500).json({
-                ok: false,
-                err
+        if (err) throw err;
+        State.findOne({
+            _id: curriculumdb.idstate
+        }, (err, statedb) => {
+            res.status(200).json({
+                ok: true,
+                curriculum: curriculumdb,
+                state: statedb
             });
-        }
-
-        res.status(200).json({
-            ok: true,
-            curriculum: curriculumdb
         });
     });
 });
@@ -310,21 +313,11 @@ app.get("/delete-user", (req, res) => {
         User.findOneAndDelete({ //Busca y elimina
             email: req.session.email
         }, (err, userdb) => {
-            if (err) {
-                return res.status(500).json({ //error
-                    ok: false,
-                    err
-                });
-            }
-            Curriculum.findOneAndDelete({ //Elimina los curriculums asociados al usuario
+            if (err) throw err;
+            Curriculum.findOneAndDelete({ //Elimina el curriculum asociado al usuario
                 email: req.session.email
             }, (err, curriculumdb) => {
-                if (err) {
-                    return res.status(500).json({
-                        ok: false,
-                        err
-                    });
-                }
+                if (err) throw err;
                 if (!curriculumdb) { //No existia ningun curriculum
                     req.session = null;
                     return res.json({
@@ -332,11 +325,17 @@ app.get("/delete-user", (req, res) => {
                         msg: "La cuenta no tenia curriculum"
                     });
                 }
-                req.session = null;
-                return res.json({ //Exito
-                    ok: true,
-                    message: "Cuenta eliminada",
-                    userdb
+                State.findOneAndDelete({
+                    _id: curriculumdb.idstate
+                }, (err, statedb) => {
+                    if (err) throw err;
+                    req.session = null;
+                    return res.json({ //Exito
+                        ok: true,
+                        message: "Cuenta eliminada",
+                        userdb,
+                        statedb
+                    });
                 });
             });
         });
@@ -384,38 +383,34 @@ app.post("/modify-curriculum", (req, res) => {
         User.findOne({ //Busca en la base de datos
             email: req.session.email
         }, (err, userdb) => {
-            if (err) {
-                return res.status(500).json({
-                    ok: false,
-                    err
-                });
-            }
+           if (err) throw err;
             Curriculum.findOne({
                 email: userdb.email
             }, (err, curriculumdb) => {
-                if (err) {
-                    return res.status(500).json({
-                        ok: false,
-                        err
-                    });
-                }
+                if (err) throw err;
                 if (!curriculumdb) {
                     return res.status(400).json({
                         ok: false
                     });
                 }
-                //Datos a modificar recuperados del front
-                curriculumdb.address = req.body.address || curriculumdb.address;
-                curriculumdb.telephone = req.body.telephone || curriculumdb.telephone;
-                curriculumdb.birthDate = req.body.birthDate || curriculumdb.birthDate;
-                curriculumdb.country = req.body.country || curriculumdb.country;
-                curriculumdb.profession = req.body.profession || curriculumdb.profession;
-                curriculumdb.experience = req.body.experience || curriculumdb.experience;
-                curriculumdb.save(); //Actualiza los nuevos datos
 
-                res.status(200).json({
-                    ok: true,
-                    msg: "Curriculum actualizado"
+                State.findOne({
+                    _id: curriculumdb.idstate
+                },(err,statedb) => {
+                    if (err) throw err;
+                    //Datos a modificar recuperados del front
+                    curriculumdb.address = req.body.address || curriculumdb.address;
+                    curriculumdb.telephone = req.body.telephone || curriculumdb.telephone;
+                    curriculumdb.birthDate = req.body.birthDate || curriculumdb.birthDate;
+                    statedb.state = req.body.state || statedb.state;
+                    curriculumdb.profession = req.body.profession || curriculumdb.profession;
+                    curriculumdb.experience = req.body.experience || curriculumdb.experience;
+                    curriculumdb.save(); //Actualiza los nuevos datos
+
+                    res.status(200).json({
+                        ok: true,
+                        msg: "Curriculum actualizado"
+                    });
                 });
             });
         });
@@ -463,7 +458,7 @@ app.post("/modify-password", async (req, res) => {
 //envio de correo a la empresa
 app.post("/apply", (req, res) => {
     if (req.session.email) {
-      //Cuerpo del correo
+        //Cuerpo del correo
         mailOptions = {
             from: 'El Farolito',
             to: req.body.email,

@@ -3,6 +3,7 @@ const app = express();
 const Company = require("../models/company.js"); //Importa el Schema de la compañia
 var User = require("../models/user.js");
 const Job = require("../models/job.js"); //Importa el Schema de los trabajos
+var State = require("../models/state.js");
 const cookieSession = require('cookie-session'); //Define una sesion que utiliza cookies
 const nodemailer = require('nodemailer'); //Define el uso de nodemailer para el uso de envio de correos
 //Define la sesion de cookie
@@ -20,7 +21,6 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-
 var rand, host, link, mailOptions;
 //Creacion de cuenta de la compañia
 app.post("/signup-company", (req, res) => {
@@ -35,7 +35,7 @@ app.post("/signup-company", (req, res) => {
         }
         if (!userdb) { //Si no existe el usuario
             const newCompany = new Company({ //Se crea uno nuevo
-              //Datos recuperados del front
+                //Datos recuperados del front
                 name: req.body.name,
                 companyName: req.body.companyName,
                 rfc: req.body.rfc,
@@ -147,31 +147,34 @@ app.post("/job-upload", (req, res) => {
                     err
                 });
             }
-            //Creacion de un nuevo trabajo
-            const newJob = new Job({
-              //Elementos recuperados del front
-                companyName: companydb.companyName,
-                email: companydb.email,
-                projectName: req.body.projectName,
-                category: req.body.category,
-                charge: req.body.charge,
-                country: req.body.country,
-                state: req.body.state,
-                salary: req.body.salary,
-                requirements: req.body.requirements,
-                description: req.body.description
+
+            const newState = new State({
+                state: req.body.state
             });
-            newJob.save((err, jobdb) => { //Guarda los datos en la base
-                if (err) {
-                    return res.status(500).json({
-                        ok: false,
-                        err
+
+            newState.save((err, statedb) => {
+                if (err) throw err;
+                //Creacion de un nuevo trabajo
+                const newJob = new Job({
+                    //Elementos recuperados del front
+                    companyName: companydb.companyName,
+                    email: companydb.email,
+                    projectName: req.body.projectName,
+                    category: req.body.category,
+                    charge: req.body.charge,
+                    salary: req.body.salary,
+                    requirements: req.body.requirements,
+                    description: req.body.description,
+                    idstate: statedb._id
+                });
+
+                newJob.save((err, jobdb) => { //Guarda los datos en la base
+                    if (err) throw err;
+                    res.status(201).json({
+                        ok: true,
+                        jobdb,
+                        companydb //Que compañia lo guardo
                     });
-                }
-                res.status(201).json({
-                    ok: true,
-                    jobdb,
-                    companydb //Asociando una compañia
                 });
             });
         });
@@ -186,12 +189,7 @@ app.get("/job", (req, res) => {
             Job.find({ //Busca en la base de datos los trabajos asociados con...
                 companyName: companydb.companyName //...el nombre de la empresa
             }, (err, jobdb) => {
-                if (err) {
-                    return res.status(500).json({
-                        ok: false,
-                        err
-                    });
-                }
+                if (err) throw err;
                 if (jobdb.length <= 0) { //Validacion de que exista un trabajo con dicha empresa
                     return res.status(400).json({
                         ok: false
@@ -208,12 +206,7 @@ app.get("/job", (req, res) => {
 //Funcion para mostrar varios trabajos
 app.get("/jobs", (req, res) => {
     Job.find({}, (err, jobdb) => {
-        if (err) {
-            return res.status(500).json({
-                ok: false,
-                err
-            });
-        }
+        if (err) throw err;
         if (jobdb.length <= 0) {
             return res.status(400).json({
                 ok: false
@@ -230,16 +223,16 @@ app.post("/req-job", (req, res) => {
     Job.findOne({
         _id: req.body.id
     }, (err, jobdb) => {
-        if (err) {
-            return res.status(500).json({
-                ok: false,
-                err
+        if (err) throw err;
+        State.findOne({
+            _id: jobdb.idstate
+        }, (err, statedb) => {
+            if (err) throw err;
+            res.status(200).json({
+                ok: true,
+                job: jobdb,
+                state: statedb
             });
-        }
-
-        res.status(200).json({
-            ok: true,
-            job: jobdb
         });
     });
 });
@@ -259,12 +252,7 @@ app.get("/delete-company", (req, res) => {
             Job.deleteMany({ //Elimina los trabajos asociados con la empresa
                 companyName: companydb.companyName
             }, (err, jobdb) => {
-                if (err) {
-                    return res.status(500).json({
-                        ok: false,
-                        err
-                    });
-                }
+                if (err) throw err;
                 if (!jobdb) { //En caso de no encontrar ningun trabajo asociado muestra un mensaje
                     req.session = null;
                     return res.json({
@@ -272,6 +260,9 @@ app.get("/delete-company", (req, res) => {
                         msg: "La cuenta no tenia vacantes de trabajo"
                     });
                 }
+                State.findOneAndDelete({
+                    _id: jobdb.idstate
+                });
 
                 req.session = null;
                 return res.json({
@@ -287,6 +278,7 @@ app.get("/delete-company", (req, res) => {
         });
     }
 });
+
 //Funcion para borrar un trabajo
 app.post("/delete-job", (req, res) => {
     if (req.session.email) {
@@ -303,14 +295,16 @@ app.post("/delete-job", (req, res) => {
                 projectName: req.body.project.projectName,
                 companyName: companydb.companyName
             }).exec(function (err, jobdb) {
-                if (err) {
-                    return res.status(500).json({
-                        message: errorHandler.getErrorMessage(err)
+                if (err) throw err;
+                State.findOneAndRemove({
+                    _id: jobdb.idstate
+                }, (err, statedb) => {
+                    if (err) throw err;
+                    res.status(200).json({ //Exito en eliminar trabajo
+                        message: "Vacante de trabajo eliminada",
+                        jobdb,
+                        statedb
                     });
-                }
-                res.status(200).json({ //Exito en eliminar trabajo
-                    message: "Vacante de trabajo eliminada",
-                    jobdb
                 });
             });
         });
@@ -326,11 +320,7 @@ app.post("/modify-job", (req, res) => {
         Company.findOne({ //Busca en la base de datos
             email: req.session.email
         }, (err, companydb) => {
-            if (err) {
-                return res.status(500).json({
-                    message: errorHandler.getErrorMessage(err)
-                });
-            }
+           if(err) throw err;
             Job.findOne({ //Busca el nombre del trabajo asociado con la empresa
                 projectName: req.body.projectName.projectName,
                 companyName: companydb.companyName
@@ -338,7 +328,7 @@ app.post("/modify-job", (req, res) => {
                 if (!jobdb) {
                     return res.status(400).json({ //Mensaje de error
                         ok: false,
-                        msg:"no existe",
+                        msg: "no existe",
                         pro: req.body.projectName
                     });
                 }
@@ -364,9 +354,9 @@ app.post("/modify-job", (req, res) => {
     }
 });
 //Envio de correo al usuario
-app.post("/quest",(req,res) => {
-    if(req.session.email){
-      //Cuerpo del correo
+app.post("/quest", (req, res) => {
+    if (req.session.email) {
+        //Cuerpo del correo
         mailOptions = {
             from: 'El Farolito',
             to: req.body.email,
